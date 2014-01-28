@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Zalora shoe catalog</title>
+        <style type="text/css">
+            body {
+                font-family: helvetica, arial, sans-serif;
+                color: #444;
+            }
+
+            form label {
+                display: inline-block;
+                vertical-align: top;
+                width: 6em;
+                font-weight: bold;
+            }
+
+            .logo {
+                display: inline-block;
+                background-image: url(http://www.zalora.com/images/header_logo.png);
+                width: 260px;
+                height: 60px;
+                background-position: -0px -0px;
+                background-repeat: no-repeat;
+            }
+
+            img.preview {
+                visibility:hidden;
+                width: 25em;
+            }
+
+            .block {
+                display:inline-block;
+            }
+
+        </style>
+        <script type="text/javascript">
+            function previewFile() {
+              var preview = document.querySelector('img.preview');
+              var file    = document.querySelector('input[type=file]').files[0];
+              var reader  = new FileReader();
+
+              reader.onloadend = function () {
+                  preview.src = reader.result;
+              }
+
+              if (file) {
+                  reader.readAsDataURL(file);
+                  preview.style.visibility = "visible"
+              } else {
+                  preview.src = "";
+                  preview.style.visibility = "hidden"
+              }
+            }
+
+            function postShoes() {
+                var form = document.querySelector('#shoeform')
+                var img = document.querySelector("img.preview").attributes.src.value
+                var data = {
+                    photo:         img,
+                    description:   form["description"].value,
+                    color:         form["color"].value,
+                    size:          form["size"].value
+                }
+                postJSON("/", data, function(e) {
+                    alert("response " + e.response);
+                })
+                return false;
+            }
+
+            function postJSON(url, data, callback) {
+                var request = new XMLHttpRequest();
+                request.open("POST", url);                    // POST to the specified url
+                request.onreadystatechange = function() {     // Simple event handler
+                    if (request.readyState === 4 && callback) // When response is complete
+                        callback(request);                    // call the callback.
+                };
+                request.setRequestHeader("Content-Type", "application/json");
+                request.send(JSON.stringify(data));
+            }
+        </script>
+    </head>
+    <body>
+        <div class="logo">&nbsp;</div>
+        <form method="post" action="/" content_type onsubmit="return postShoes()" id="shoeform">
+            <h2>Add shoes</h2>
+            <div>
+                <label for="photo">Photo</label>
+                <div class="block">
+                    <input type="file" onchange="previewFile()"/><br/>
+                    <img class="preview" src="" alt="Image preview...">
+                </div>
+            </div>
+            <div>
+                <label for="description">Description</label>
+                <textarea rows="4" cols="40" name="description" id="description"></textarea>
+            </div>
+            <div>
+                <label for="color">Color</label>
+                <input type="text" name="color" />
+            </div>
+            <div>
+                <label for="size">Size</label>
+                <input type="number" name="size" min="1" max="52" />
+            </div>
+            <input type="submit"/>
+        </form>
+    </body>
+</html>
