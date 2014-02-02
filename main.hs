@@ -1,12 +1,13 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
-import GHC.Generics
 import Web.Scotty
-import Network.Wai.Middleware.RequestLogger
-import Data.Aeson.Types
+import Network.Wai.Middleware.RequestLogger(logStdoutDev)
+import Data.Aeson ( (.:),(.:?),decode,FromJSON(..),Value(..))
+import Data.Text.Lazy (pack)
+import Control.Applicative ((<$>), (<*>))
+import qualified Data.ByteString.Lazy.Char8 as BS
 
 data Shoes = Shoes
   { id          :: Maybe String
@@ -14,9 +15,16 @@ data Shoes = Shoes
   , color       :: String
   , size        :: String
   , photo       :: String
-  } deriving Generic
+  } deriving Show
 
-instance FromJSON Shoes
+instance FromJSON Shoes where
+  parseJSON (Object v) = Shoes
+    <$> (v .:? "id")
+    <*> (v .: "description")
+    <*> (v .: "color")
+    <*> (v .: "size")
+    <*> (v .: "photo")
+
 
 main = scotty 3000 $ do
   middleware logStdoutDev
@@ -33,10 +41,19 @@ showShoes = do
 
 
 postShoes = do
-  shoesData <- jsonData
-  html $ shoesData
+  b <- body
+  let (Just shoes) = decode b :: Maybe Shoes
+  let shoesName = "shoes_1"
+  persistShoes $ shoesName shoes
+  redirect $ "/" + shoesName + ".html"
+  where
+    persistShoes name shoes = do
+      let shoesString = show $ shoes
+      persist $ name "json" shoesString
+      persist $ name "jpg" shoes.photo
+      persist $ name "html" shoesHtml $ name shoes
+    shoesHtml name shoes = "<p>" + shoes.description + "</p><img href='"+name+"'.jpg />"
+    persist name ext content = writeFile $ (name + "." + ext) content
 
-  -- I somehow need to convert JSON in a html file and rebuild index.html
-  -- afterwards redirect to "/:shoes"
-  -- let shoesName = "new_shoes"
-  -- redirect "/" ++ shoesName ++ ".html"
+
+
